@@ -1,0 +1,8 @@
+{
+  "vault": "/path/to/your/obsidian-vault",
+  "claude_org_id": "your-claude-org-id-here",
+  "claude_output_dir": "Claude",
+  "chatgpt_output_dir": "GPT",
+  "sync_script": "scripts/sync_ai_chats.py",
+  "state_file": "scripts/.ai_sync_state.json"
+}
