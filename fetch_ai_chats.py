@@ -265,20 +265,44 @@ def claude_to_markdown(conv: dict) -> str:
     return "\n".join(parts)
 
 
-def fetch_claude(target_date: dt.date, state: dict, dry_run: bool, force: bool) -> int:
-    if not CLAUDE_ORG_ID:
-        print("[Claude] No claude_org_id in trove.json. Run setup.sh first.", file=sys.stderr)
-        return 0
+def claude_auto_detect_org_id(cookie_str: str) -> str:
+    """Auto-detect Claude org ID from the API."""
+    try:
+        resp = cffi_get(
+            "https://claude.ai/api/organizations",
+            cookie_str,
+            referer="https://claude.ai/",
+            origin="https://claude.ai",
+        )
+        resp.raise_for_status()
+        orgs = resp.json()
+        if orgs:
+            org_id = orgs[0].get("uuid", "")
+            if org_id:
+                print(f"[Claude] Auto-detected org ID: {org_id[:8]}...")
+                return org_id
+    except Exception:
+        pass
+    return ""
 
+
+def fetch_claude(target_date: dt.date, state: dict, dry_run: bool, force: bool) -> int:
     try:
         cookie_str = get_cookies_for_domain("claude.ai", "sessionKey")
     except RuntimeError as e:
         print(f"[Claude] {e}", file=sys.stderr)
         return 0
 
+    org_id = CLAUDE_ORG_ID or claude_auto_detect_org_id(cookie_str)
+    if not org_id:
+        print("[Claude] Could not determine org ID. Set claude_org_id in trove.json.", file=sys.stderr)
+        return 0
+
+    claude_base = f"https://claude.ai/api/organizations/{org_id}"
+
     try:
         resp = cffi_get(
-            f"{CLAUDE_BASE}/chat_conversations",
+            f"{claude_base}/chat_conversations",
             cookie_str,
             referer="https://claude.ai/",
             origin="https://claude.ai",
@@ -312,7 +336,7 @@ def fetch_claude(target_date: dt.date, state: dict, dry_run: bool, force: bool) 
 
         try:
             r = cffi_get(
-                f"{CLAUDE_BASE}/chat_conversations/{uuid}",
+                f"{claude_base}/chat_conversations/{uuid}",
                 cookie_str,
                 referer="https://claude.ai/",
                 origin="https://claude.ai",

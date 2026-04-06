@@ -26,11 +26,9 @@ if [ ! -f "$CONFIG_FILE" ]; then
     vault_path="${vault_path:-$HOME/my-vault}"
     vault_path="${vault_path/#\~/$HOME}"
 
-    echo "  To find your Claude org ID:"
-    echo "    1. Open claude.ai in Chrome"
-    echo "    2. Look at any API request in DevTools Network tab"
-    echo "    3. The URL contains /organizations/{YOUR_ORG_ID}/"
-    read -p "  Claude org ID: " org_id
+    echo "  Claude org ID (optional - Trove can auto-detect this)."
+    echo "  Just press Enter to skip, or paste your org ID if you have it."
+    read -p "  Claude org ID [auto-detect]: " org_id
 
     cat > "$CONFIG_FILE" << JSONEOF
 {

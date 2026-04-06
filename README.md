@@ -18,15 +18,11 @@ Trove treats these conversations as what they are: treasure worth keeping. It au
 
 Once your conversations live in Obsidian, they become part of your knowledge graph. Link them to projects. Search across months of thinking. Feed them to agents to maintain continuity of thought. Build a second brain that actually remembers what you and your AI figured out together.
 
-## How It Works
+## Quick Start
 
-1. Reads your Chrome session cookies (auto-detects the right profile)
-2. Calls the internal APIs of Claude and ChatGPT to fetch today's conversations
-3. Converts them to Obsidian-compatible markdown with proper frontmatter
-4. Saves to your vault, one file per conversation
-5. Optionally links them into your daily note
+> **Requirements:** macOS, Python 3.10+, Google Chrome logged into [claude.ai](https://claude.ai) and/or [chatgpt.com](https://chatgpt.com), and an [Obsidian](https://obsidian.md) vault.
 
-## Setup
+### Step 1: Install
 
 ```bash
 git clone https://github.com/jetsonearth/Trove.git
@@ -34,12 +30,32 @@ cd Trove
 ./setup.sh
 ```
 
-That's it. The setup script:
-- Installs Python dependencies (`curl_cffi`, `pycookiecheat`)
-- Asks for your Obsidian vault path and Claude org ID
-- Registers a daily scheduler (runs at 23:50 via macOS LaunchAgent)
+The setup script will ask you two things:
 
-**Prerequisites**: Python 3.10+, Chrome with active logins to claude.ai / chatgpt.com.
+| Prompt | What to enter |
+|--------|---------------|
+| **Obsidian vault path** | The full path to your vault folder, e.g. `~/my-vault` |
+| **Claude org ID** | Press Enter to skip (Trove will try to auto-detect it at runtime), or paste your org ID if you already have it. See [How to find your Claude org ID](#how-to-find-your-claude-org-id) if auto-detection doesn't work. |
+
+It then installs dependencies and sets up a daily scheduler (runs every night at 23:50).
+
+### Step 2: Test it
+
+```bash
+python3 fetch_ai_chats.py --dry-run
+```
+
+This previews what would be fetched without writing anything. You should see a list of today's conversations. If you see errors, check the [Troubleshooting](#troubleshooting) section.
+
+### Step 3: Run it for real
+
+```bash
+python3 fetch_ai_chats.py
+```
+
+Done. Check your Obsidian vault - your conversations are there.
+
+From now on, Trove runs automatically every night. You can also run it manually anytime.
 
 ## Usage
 
@@ -52,7 +68,7 @@ python3 fetch_ai_chats.py --dry-run              # preview what would be fetched
 python3 fetch_ai_chats.py --force                # re-fetch even if already exported
 ```
 
-## Output
+## What You Get
 
 Each conversation becomes a markdown file in your vault:
 
@@ -61,7 +77,7 @@ Each conversation becomes a markdown file in your vault:
 ~/my-vault/GPT/4-4-26 Red Hat Partner Certifications.md
 ```
 
-With frontmatter that Obsidian can index and query:
+Each file has Obsidian-compatible frontmatter so you can search, tag, and link them:
 
 ```yaml
 ---
@@ -76,21 +92,14 @@ tags:
 ---
 ```
 
-## Finding Your Claude Org ID
+## How It Works
 
-1. Open claude.ai in Chrome
-2. Open DevTools (Cmd+Option+I) -> Network tab
-3. Refresh the page
-4. Look for any request to `/api/organizations/{UUID}/` - that UUID is your org ID
+1. Reads your Chrome session cookies (auto-detects the right profile)
+2. Calls the Claude / ChatGPT APIs to fetch today's conversations
+3. Converts them to clean markdown with frontmatter
+4. Saves to your vault, one file per conversation
 
-## How Authentication Works
-
-Trove uses two libraries to bypass Cloudflare protection without any manual configuration:
-
-- **pycookiecheat**: Decrypts Chrome cookies from the macOS Keychain, auto-detecting the correct Chrome profile
-- **curl_cffi**: Sends HTTP requests with Chrome's TLS fingerprint, so Cloudflare treats them as a real browser
-
-This means: as long as you're logged into claude.ai / chatgpt.com in Chrome, Trove just works.
+**Authentication:** Trove uses [pycookiecheat](https://github.com/n8henrie/pycookiecheat) to decrypt Chrome cookies from the macOS Keychain, and [curl_cffi](https://github.com/lexiforest/curl_cffi) to send requests with Chrome's TLS fingerprint. No API keys needed - as long as you're logged in via Chrome, it just works.
 
 ## Configuration
 
@@ -99,11 +108,39 @@ This means: as long as you're logged into claude.ai / chatgpt.com in Chrome, Tro
 ```json
 {
   "vault": "/path/to/your/obsidian-vault",
-  "claude_org_id": "your-org-id",
+  "claude_org_id": "",
   "claude_output_dir": "Claude",
   "chatgpt_output_dir": "GPT"
 }
 ```
+
+| Field | Description | Required? |
+|-------|-------------|-----------|
+| `vault` | Absolute path to your Obsidian vault | Yes |
+| `claude_org_id` | Your Claude organization UUID. Leave empty for auto-detection | No |
+| `claude_output_dir` | Subfolder in vault for Claude conversations | No (default: `Claude`) |
+| `chatgpt_output_dir` | Subfolder in vault for ChatGPT conversations | No (default: `GPT`) |
+
+## How to Find Your Claude Org ID
+
+Trove tries to auto-detect this, but if it fails, you can find it manually:
+
+1. Open [claude.ai](https://claude.ai) in Chrome
+2. Open DevTools: **Cmd + Option + I**
+3. Go to the **Network** tab
+4. Refresh the page
+5. Click on any request in the list, and look at the request URL - you'll see something like `/api/organizations/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/...`
+6. Copy that UUID and paste it into `trove.json` as `claude_org_id`
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `Could not find 'sessionKey' cookie` | You're not logged into claude.ai in Chrome. Log in and try again. |
+| `Could not find '__Secure-next-auth.session-token' cookie` | You're not logged into chatgpt.com in Chrome. Log in and try again. |
+| `Could not determine org ID` | Set `claude_org_id` manually in `trove.json`. To find it: open claude.ai -> DevTools (Cmd+Option+I) -> Network tab -> refresh -> look for `/api/organizations/{UUID}/` in any request URL. |
+| `No new conversations to export` | You have no conversations from today. Try `--date YYYY-MM-DD` to fetch a different date. |
+| `pip3 install` fails | Try `pip3 install --user curl_cffi pycookiecheat` or use a virtualenv. |
 
 ## Supported Providers
 

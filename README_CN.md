@@ -18,15 +18,11 @@
 
 一旦你的对话进入 Obsidian，它们就成了你知识图谱的一部分。把它们链接到项目、跨越几个月的思考做搜索、喂给 agent 来维持思维的连续性。建立一个真正记得你和 AI 一起想明白了什么的第二大脑。
 
-## 工作原理
+## 快速开始
 
-1. 读取 Chrome 的 session cookie（自动检测正确的 Chrome profile）
-2. 调用 Claude 和 ChatGPT 的内部 API 拉取当天的对话
-3. 转换为 Obsidian 兼容的 markdown 格式，带 frontmatter 元数据
-4. 保存到你的 vault，每段对话一个文件
-5. 可选地链接到你的 daily note
+> **环境要求：** macOS、Python 3.10+、Google Chrome 已登录 [claude.ai](https://claude.ai) 和/或 [chatgpt.com](https://chatgpt.com)，以及一个 [Obsidian](https://obsidian.md) vault。
 
-## 安装
+### 第一步：安装
 
 ```bash
 git clone https://github.com/jetsonearth/Trove.git
@@ -34,12 +30,32 @@ cd Trove
 ./setup.sh
 ```
 
-搞定。setup 脚本会：
-- 安装 Python 依赖（`curl_cffi`、`pycookiecheat`）
-- 询问你的 Obsidian vault 路径和 Claude org ID
-- 注册每日定时任务（通过 macOS LaunchAgent，每天 23:50 自动运行）
+安装脚本会问你两个问题：
 
-**前提条件**：Python 3.10+，Chrome 浏览器已登录 claude.ai / chatgpt.com。
+| 提示 | 填什么 |
+|------|--------|
+| **Obsidian vault path** | 你的 vault 文件夹完整路径，比如 `~/my-vault` |
+| **Claude org ID** | 按回车跳过（Trove 运行时会尝试自动检测），或者你有的话直接粘贴。如果自动检测失败，看下面的[如何获取 Claude Org ID](#如何获取-claude-org-id)。 |
+
+然后它会安装依赖，并设置每日定时任务（每晚 23:50 自动运行）。
+
+### 第二步：测试一下
+
+```bash
+python3 fetch_ai_chats.py --dry-run
+```
+
+这会预览要拉取的内容，不会实际写入文件。你应该能看到今天的对话列表。如果报错，看下面的[常见问题](#常见问题)。
+
+### 第三步：正式运行
+
+```bash
+python3 fetch_ai_chats.py
+```
+
+搞定。打开你的 Obsidian vault 看看 - 对话已经在那里了。
+
+从现在起，Trove 每晚自动运行。你也可以随时手动执行。
 
 ## 使用方法
 
@@ -52,16 +68,16 @@ python3 fetch_ai_chats.py --dry-run              # 预览，不实际写入
 python3 fetch_ai_chats.py --force                # 重新拉取已导出的对话
 ```
 
-## 输出格式
+## 输出效果
 
 每段对话变成 vault 中的一个 markdown 文件：
 
 ```
-~/my-vault/Claude/4-4-26 需求聚合策略分析.md
+~/my-vault/Claude/4-4-26 Demand aggregation strategy insights.md
 ~/my-vault/GPT/4-4-26 Red Hat Partner Certifications.md
 ```
 
-带 Obsidian 可索引和查询的 frontmatter：
+每个文件都带 Obsidian 兼容的 frontmatter，方便搜索、打标签、建链接：
 
 ```yaml
 ---
@@ -76,21 +92,14 @@ tags:
 ---
 ```
 
-## 查找 Claude Org ID
+## 工作原理
 
-1. 在 Chrome 打开 claude.ai
-2. 打开 DevTools（Cmd+Option+I）-> Network 标签
-3. 刷新页面
-4. 找到任意一个请求 `/api/organizations/{UUID}/` 的请求 - 那个 UUID 就是你的 org ID
+1. 读取 Chrome 的 session cookie（自动检测正确的 Chrome profile）
+2. 调用 Claude / ChatGPT 的 API 拉取当天的对话
+3. 转换为干净的 markdown 格式，带 frontmatter 元数据
+4. 保存到你的 vault，每段对话一个文件
 
-## 认证原理
-
-Trove 使用两个库绕过 Cloudflare 防护，不需要任何手动配置：
-
-- **pycookiecheat**：从 macOS Keychain 解密 Chrome cookie，自动检测正确的 Chrome profile
-- **curl_cffi**：使用 Chrome 的 TLS 指纹发送 HTTP 请求，让 Cloudflare 认为是真实浏览器
-
-这意味着：只要你在 Chrome 里登录了 claude.ai / chatgpt.com，Trove 就直接能用。
+**认证方式：** Trove 用 [pycookiecheat](https://github.com/n8henrie/pycookiecheat) 从 macOS Keychain 解密 Chrome cookie，用 [curl_cffi](https://github.com/lexiforest/curl_cffi) 模拟 Chrome 的 TLS 指纹发请求。不需要 API key - 只要你在 Chrome 里登录了，就直接能用。
 
 ## 配置
 
@@ -99,11 +108,39 @@ Trove 使用两个库绕过 Cloudflare 防护，不需要任何手动配置：
 ```json
 {
   "vault": "/path/to/your/obsidian-vault",
-  "claude_org_id": "your-org-id",
+  "claude_org_id": "",
   "claude_output_dir": "Claude",
   "chatgpt_output_dir": "GPT"
 }
 ```
+
+| 字段 | 说明 | 必填？ |
+|------|------|--------|
+| `vault` | Obsidian vault 的绝对路径 | 是 |
+| `claude_org_id` | Claude 组织 UUID。留空则自动检测 | 否 |
+| `claude_output_dir` | vault 中存放 Claude 对话的子文件夹 | 否（默认 `Claude`）|
+| `chatgpt_output_dir` | vault 中存放 ChatGPT 对话的子文件夹 | 否（默认 `GPT`）|
+
+## 如何获取 Claude Org ID
+
+Trove 会尝试自动检测，但如果失败，你可以手动获取：
+
+1. 在 Chrome 打开 [claude.ai](https://claude.ai)
+2. 打开 DevTools：**Cmd + Option + I**
+3. 切到 **Network** 标签
+4. 刷新页面
+5. 点击列表中任意一个请求，看请求 URL - 你会看到类似 `/api/organizations/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/...` 的路径
+6. 复制那个 UUID，粘贴到 `trove.json` 的 `claude_org_id` 字段
+
+## 常见问题
+
+| 问题 | 解决方法 |
+|------|----------|
+| `Could not find 'sessionKey' cookie` | 你没在 Chrome 登录 claude.ai。登录后重试。 |
+| `Could not find '__Secure-next-auth.session-token' cookie` | 你没在 Chrome 登录 chatgpt.com。登录后重试。 |
+| `Could not determine org ID` | 在 `trove.json` 里手动填 `claude_org_id`。获取方法：打开 claude.ai -> DevTools（Cmd+Option+I）-> Network 标签 -> 刷新页面 -> 找到任意一个 `/api/organizations/{UUID}/` 的请求，那个 UUID 就是。 |
+| `No new conversations to export` | 今天没有新对话。试试 `--date YYYY-MM-DD` 拉取其他日期。 |
+| `pip3 install` 失败 | 试试 `pip3 install --user curl_cffi pycookiecheat`，或者用 virtualenv。 |
 
 ## 支持的 Provider
 
