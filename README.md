@@ -1,10 +1,24 @@
-# Trove
+<p align="center">
+  <h1 align="center">Trove</h1>
+  <p align="center"><b>Your AI conversations are treasure. Stop letting them disappear.</b></p>
+  <p align="center">
+    <a href="README.md">English</a> | <a href="README_CN.md">中文</a>
+  </p>
+</p>
 
-Your AI conversations contain your thinking, decisions, research, and preferences - but they're trapped and fragmented across platforms. Trove liberates them.
+## Why Trove?
 
-Trove automatically syncs your daily Claude and ChatGPT conversations into your Obsidian vault as clean markdown files. Zero configuration - it reads cookies directly from Chrome.
+Every day, you have dozens of conversations with AI - brainstorming product ideas, debugging gnarly code, researching unfamiliar domains, making decisions. Each conversation is a snapshot of your thinking: the questions you asked, the reasoning you followed, the conclusions you reached.
 
-## How it works
+But these conversations vanish. They sit buried in Claude's sidebar or ChatGPT's history, unsearchable, disconnected from each other, and invisible to the tools you actually use. You can't grep them. You can't link them to your notes. You can't feed them back to an agent that needs to understand how you think.
+
+**Your AI conversations are not just chat logs - they are your extended cognition.** They capture moments of insight, chains of reasoning, and idea generation that your brain alone can't retain. They are context - the kind of context that makes the difference between an AI assistant that starts from zero every time and one that truly understands your work.
+
+Trove treats these conversations as what they are: treasure worth keeping. It automatically syncs your daily Claude and ChatGPT conversations into your Obsidian vault as clean, searchable markdown. No manual export, no copy-paste, no configuration headaches - it reads cookies directly from Chrome and just works.
+
+Once your conversations live in Obsidian, they become part of your knowledge graph. Link them to projects. Search across months of thinking. Feed them to agents to maintain continuity of thought. Build a second brain that actually remembers what you and your AI figured out together.
+
+## How It Works
 
 1. Reads your Chrome session cookies (auto-detects the right profile)
 2. Calls the internal APIs of Claude and ChatGPT to fetch today's conversations
@@ -15,8 +29,8 @@ Trove automatically syncs your daily Claude and ChatGPT conversations into your 
 ## Setup
 
 ```bash
-git clone <this-repo>
-cd trove
+git clone https://github.com/jetsonearth/Trove.git
+cd Trove
 ./setup.sh
 ```
 
@@ -47,7 +61,7 @@ Each conversation becomes a markdown file in your vault:
 ~/my-vault/GPT/4-4-26 Red Hat Partner Certifications.md
 ```
 
-With frontmatter:
+With frontmatter that Obsidian can index and query:
 
 ```yaml
 ---
@@ -62,14 +76,14 @@ tags:
 ---
 ```
 
-## Finding your Claude org ID
+## Finding Your Claude Org ID
 
 1. Open claude.ai in Chrome
 2. Open DevTools (Cmd+Option+I) -> Network tab
 3. Refresh the page
 4. Look for any request to `/api/organizations/{UUID}/` - that UUID is your org ID
 
-## How authentication works
+## How Authentication Works
 
 Trove uses two libraries to bypass Cloudflare protection without any manual configuration:
 
@@ -91,11 +105,15 @@ This means: as long as you're logged into claude.ai / chatgpt.com in Chrome, Tro
 }
 ```
 
-## Supported providers
+## Supported Providers
 
-| Provider | Status | Auth method |
+| Provider | Status | Auth Method |
 |----------|--------|-------------|
 | Claude   | Working | Chrome cookie (sessionKey) |
 | ChatGPT  | Working | Chrome cookie -> Bearer token |
 | DeepSeek | Planned | TBD |
 | Kimi     | Planned | TBD |
+
+## License
+
+MIT
