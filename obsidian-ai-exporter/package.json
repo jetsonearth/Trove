@@ -1,0 +1,61 @@
+{
+  "name": "obsidian-ai-exporter",
+  "version": "0.20.6",
+  "description": "Chrome Extension to export AI conversations from Gemini, Claude, ChatGPT, and Perplexity to Obsidian, file download, or clipboard",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:zip": "npm run build && cd dist && zip -r ../gemini2obsidian-$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store' -x '.vite/*' && cd ..",
+    "lint": "eslint src/ && node scripts/lint-platforms.mjs",
+    "lint:platforms": "node scripts/lint-platforms.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,html}\"",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "e2e:auth": "npx tsx e2e/auth/setup-profile.ts",
+    "e2e:selectors": "npx playwright test --config e2e/playwright.config.ts",
+    "e2e:selectors:headed": "npx playwright test --config e2e/playwright.config.ts --headed",
+    "e2e:daemon": "npx tsx e2e/daemon/daemon.ts",
+    "e2e:daemon:start": "npx tsx e2e/daemon/daemon.ts start",
+    "e2e:daemon:stop": "npx tsx e2e/daemon/daemon.ts stop",
+    "e2e:daemon:status": "npx tsx e2e/daemon/daemon.ts status"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.2",
+    "turndown": "^7.1.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "@crxjs/vite-plugin": "^2.0.0-beta.23",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
+    "@types/chrome": "^0.0.268",
+    "@types/jsdom": "^27.0.0",
+    "@types/turndown": "^5.0.4",
+    "@vitest/coverage-v8": "^4.0.16",
+    "dotenv": "^17.3.1",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "jsdom": "^27.4.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^6.4.2",
+    "vite-plugin-static-copy": "^3.1.4",
+    "vitest": "^4.0.16"
+  },
+  "overrides": {
+    "@crxjs/vite-plugin": {
+      "rollup": "2.80.0"
+    },
+    "undici": ">=7.24.0"
+  },
+  "author": "",
+  "license": "MIT"
+}

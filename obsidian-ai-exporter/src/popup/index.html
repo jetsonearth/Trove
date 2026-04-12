@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="extName">Obsidian AI Exporter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1>
+          <img src="/icons/icon24.png" alt="" class="logo" width="24" height="24" />
+          <span data-i18n="extName">Obsidian AI Exporter</span>
+        </h1>
+      </header>
+
+      <main class="settings">
+        <!-- OUTPUT DESTINATIONS -->
+        <section class="section">
+          <h2 data-i18n="settings_outputDestinations">Output Destinations</h2>
+          <div class="toggle-list">
+            <label class="toggle-row">
+              <span class="toggle-icon">📦</span>
+              <span class="toggle-label" data-i18n="settings_outputObsidian">Obsidian (API)</span>
+              <span class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="outputObsidian"
+                  role="switch"
+                  aria-checked="true"
+                  checked
+                />
+                <span class="slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="toggle-row">
+              <span class="toggle-icon">📄</span>
+              <span class="toggle-label" data-i18n="settings_outputFile">Download File</span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="outputFile" role="switch" aria-checked="false" />
+                <span class="slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="toggle-row">
+              <span class="toggle-icon">📋</span>
+              <span class="toggle-label" data-i18n="settings_outputClipboard"
+                >Copy to Clipboard</span
+              >
+              <span class="toggle-switch">
+                <input type="checkbox" id="outputClipboard" role="switch" aria-checked="false" />
+                <span class="slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <!-- EXTRACTION -->
+        <section class="section">
+          <h2 data-i18n="settings_extraction">Extraction</h2>
+          <div class="toggle-list">
+            <label class="toggle-row">
+              <span class="toggle-icon">📎</span>
+              <span class="toggle-label">
+                <span data-i18n="settings_enableAppendMode">Append Mode</span>
+                <span class="toggle-sublabel" data-i18n="settings_appendModeHelp">
+                  Only add new messages to existing notes
+                </span>
+              </span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="enableAppendMode" role="switch" aria-checked="false" />
+                <span class="slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <!-- ADVANCED SETTINGS (collapsible) -->
+        <details class="advanced-settings">
+          <summary>
+            <span class="advanced-arrow">▶</span>
+            <span data-i18n="settings_advancedSettings">Advanced Settings</span>
+          </summary>
+          <div class="advanced-content">
+            <!-- Extraction (Advanced) -->
+            <section class="section">
+              <h2 data-i18n="settings_extraction">Extraction</h2>
+              <div class="toggle-list">
+                <label class="toggle-row">
+                  <span class="toggle-icon">🔄</span>
+                  <span class="toggle-label">
+                    <span data-i18n="settings_enableAutoScroll">Auto-scroll</span>
+                    <span class="toggle-sublabel" data-i18n="settings_autoScrollHelp">
+                      Load all messages in long conversations
+                    </span>
+                  </span>
+                  <span class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="enableAutoScroll"
+                      role="switch"
+                      aria-checked="false"
+                    />
+                    <span class="slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="toggle-row">
+                  <span class="toggle-icon">🔍</span>
+                  <span class="toggle-label">
+                    <span data-i18n="settings_enableToolContent">Include tool/search results</span>
+                    <span class="toggle-sublabel" data-i18n="settings_toolContentHelp">
+                      Save web search and tool results from Claude
+                    </span>
+                  </span>
+                  <span class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      id="enableToolContent"
+                      role="switch"
+                      aria-checked="false"
+                    />
+                    <span class="slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <!-- Obsidian API Settings -->
+            <section class="section" id="obsidianSettings">
+              <h2 data-i18n="settings_title">Settings</h2>
+
+              <div class="form-group">
+                <label for="apiKey" data-i18n="settings_apiKey">API Key</label>
+                <div class="api-key-wrapper">
+                  <input
+                    type="password"
+                    id="apiKey"
+                    data-i18n-placeholder="settings_apiKeyPlaceholder"
+                    placeholder="Enter your Local REST API key"
+                    autocomplete="off"
+                  />
+                  <!-- Toggle button is added by JavaScript -->
+                </div>
+                <p class="help" data-i18n="settings_apiKeyHelp">
+                  From Obsidian → Settings → Local REST API
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label for="obsidianUrl" data-i18n="settings_apiUrl">API URL</label>
+                <input
+                  type="url"
+                  id="obsidianUrl"
+                  value="http://127.0.0.1:27123"
+                  data-i18n-placeholder="settings_apiUrlPlaceholder"
+                  placeholder="http://127.0.0.1:27123"
+                />
+                <p class="help" data-i18n="settings_apiUrlHelp">
+                  Obsidian Local REST API URL (default: http://127.0.0.1:27123)
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label for="vaultPath" data-i18n="settings_vaultPath">Vault Path</label>
+                <input
+                  type="text"
+                  id="vaultPath"
+                  data-i18n-placeholder="settings_vaultPathPlaceholder"
+                  placeholder="AI/{platform}"
+                />
+                <p class="help" data-i18n="settings_vaultPathHelp">
+                  Use {platform} to auto-organize by source (gemini, claude, chatgpt, perplexity)
+                </p>
+              </div>
+            </section>
+
+            <!-- Message Format -->
+            <section class="section">
+              <h2 data-i18n="settings_messageFormat">Message Format</h2>
+
+              <div class="form-group">
+                <label for="messageFormat" data-i18n="settings_messageFormat">Message Format</label>
+                <select id="messageFormat">
+                  <option value="callout" data-i18n="settings_format_callout">
+                    Callout (Recommended)
+                  </option>
+                  <option value="blockquote" data-i18n="settings_format_blockquote">
+                    Blockquote
+                  </option>
+                  <option value="plain" data-i18n="settings_format_plain">Plain Markdown</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="userCallout" data-i18n="settings_userCallout">User Callout</label>
+                  <input type="text" id="userCallout" value="QUESTION" />
+                </div>
+                <div class="form-group">
+                  <label for="assistantCallout" data-i18n="settings_assistantCallout"
+                    >Assistant Callout</label
+                  >
+                  <input type="text" id="assistantCallout" value="NOTE" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeQuestionHeaders" />
+                  <span data-i18n="settings_includeQuestionHeaders"
+                    >Add `## ` headers before user messages</span
+                  >
+                </label>
+                <p class="help" data-i18n="settings_includeQuestionHeadersHelp">
+                  Prepend a level-2 heading (first 60 chars of the question) for TOC navigation in
+                  long conversations.
+                </p>
+              </div>
+            </section>
+
+            <!-- Frontmatter -->
+            <section class="section">
+              <h2 data-i18n="settings_frontmatter">Frontmatter Fields</h2>
+              <div class="checkbox-grid">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeId" checked />
+                  <span data-i18n="settings_includeId">ID</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeTitle" checked />
+                  <span data-i18n="settings_includeTitle">Title</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeTags" checked />
+                  <span data-i18n="settings_includeTags">Tags</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeSource" checked />
+                  <span data-i18n="settings_includeSource">Source & URL</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeDates" checked />
+                  <span data-i18n="settings_includeDates">Dates</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="includeMessageCount" checked />
+                  <span data-i18n="settings_includeMessageCount">Message Count</span>
+                </label>
+              </div>
+
+              <div class="form-group timezone-group" id="timezoneGroup">
+                <label for="timezone" data-i18n="settings_timezone">Timezone</label>
+                <select id="timezone">
+                  <option value="UTC">UTC</option>
+                </select>
+                <p class="help" data-i18n="settings_timezoneHelp">
+                  Timezone for created/modified dates in frontmatter
+                </p>
+              </div>
+            </section>
+          </div>
+        </details>
+      </main>
+
+      <footer class="actions">
+        <button id="testBtn" class="btn secondary">
+          <span class="btn-icon">🔌</span>
+          <span data-i18n="settings_testConnection">Test Connection</span>
+        </button>
+        <button id="saveBtn" class="btn primary">
+          <span class="btn-icon">💾</span>
+          <span data-i18n="settings_save">Save Settings</span>
+        </button>
+      </footer>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="index.ts"></script>
+  </body>
+</html>

@@ -39,7 +39,7 @@ def load_config() -> dict:
         "claude_org_id": "",
         "claude_output_dir": "Claude",
         "chatgpt_output_dir": "GPT",
-        "sync_script": "scripts/sync_ai_chats.py",
+        "sync_script": "scripts/ingest_context.py",
         "state_file": "scripts/.ai_sync_state.json",
     }
     if CONFIG_FILE.exists():
@@ -127,6 +127,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--provider", choices=["claude", "chatgpt", "all"], default="all")
     p.add_argument("--dry-run", action="store_true", help="Preview without writing.")
     p.add_argument("--force", action="store_true", help="Re-fetch already exported.")
+    p.add_argument(
+        "--catchup", type=int, default=0, metavar="DAYS",
+        help="Also fetch the previous N days (catches missed days).",
+    )
     return p.parse_args()
 
 
@@ -500,29 +504,60 @@ def fetch_chatgpt(target_date: dt.date, state: dict, dry_run: bool, force: bool)
 # ---------------------------------------------------------------------------
 
 
-def main() -> int:
-    args = parse_args()
-    target_date = parse_target_date(args.date)
-    state = load_state()
+def wait_for_network(timeout: int = 120) -> bool:
+    """Wait until network is available (for RunAtLoad after boot/wake)."""
+    import socket
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            socket.create_connection(("claude.ai", 443), timeout=5).close()
+            return True
+        except OSError:
+            time.sleep(5)
+    return False
+
+
+def fetch_one_day(
+    target_date: dt.date, args: argparse.Namespace, state: dict,
+) -> int:
     total = 0
-
-    print(f"Fetching AI chats for {target_date.isoformat()}...")
-
     if args.provider in ("claude", "all"):
         total += fetch_claude(target_date, state, args.dry_run, args.force)
-
     if args.provider in ("chatgpt", "all"):
         total += fetch_chatgpt(target_date, state, args.dry_run, args.force)
+    if not args.dry_run and total > 0:
+        run_sync(target_date)
+    return total
+
+
+def main() -> int:
+    args = parse_args()
+
+    # Wait for network on boot/wake
+    if not wait_for_network():
+        print("No network after 120s. Exiting.", file=sys.stderr)
+        return 1
+
+    base_date = parse_target_date(args.date)
+    state = load_state()
+    grand_total = 0
+
+    # Build list of dates: catchup days (oldest first) + target date
+    dates = [base_date - dt.timedelta(days=d) for d in range(args.catchup, 0, -1)]
+    dates.append(base_date)
+
+    for target_date in dates:
+        print(f"Fetching AI chats for {target_date.isoformat()}...")
+        grand_total += fetch_one_day(target_date, args, state)
 
     if not args.dry_run:
         save_state(state)
-        if total > 0:
-            print(f"\nSaved {total} conversation(s). Running sync...")
-            run_sync(target_date)
+        if grand_total > 0:
+            print(f"\nTotal: saved {grand_total} conversation(s).")
         else:
             print("No new conversations to export.")
     else:
-        print(f"\n[dry-run] Would export {total} conversation(s).")
+        print(f"\n[dry-run] Would export {grand_total} conversation(s).")
 
     return 0
 

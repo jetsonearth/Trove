@@ -1,0 +1,366 @@
+{
+  "extName": {
+    "message": "Obsidian AI Exporter",
+    "description": "Extension name shown in browser"
+  },
+  "extDescription": {
+    "message": "Export AI conversations from Gemini, Claude, ChatGPT, and Perplexity to Obsidian via Local REST API",
+    "description": "Extension description shown in browser and store"
+  },
+
+  "ui_syncButton": {
+    "message": "Sync to Obsidian",
+    "description": "Text on the floating sync button"
+  },
+  "ui_syncing": {
+    "message": "Syncing...",
+    "description": "Text shown while syncing"
+  },
+
+  "settings_title": {
+    "message": "Settings",
+    "description": "Settings page title"
+  },
+  "settings_apiKey": {
+    "message": "Obsidian API Key",
+    "description": "Label for API key input"
+  },
+  "settings_apiKeyPlaceholder": {
+    "message": "Enter your Local REST API key",
+    "description": "Placeholder for API key input"
+  },
+  "settings_apiUrl": {
+    "message": "API URL",
+    "description": "Label for Obsidian API URL input"
+  },
+  "settings_apiUrlPlaceholder": {
+    "message": "http://127.0.0.1:27123",
+    "description": "Placeholder for API URL input"
+  },
+  "settings_apiUrlHelp": {
+    "message": "Obsidian Local REST API URL (default: http://127.0.0.1:27123)",
+    "description": "Help text for API URL input"
+  },
+  "settings_vaultPath": {
+    "message": "Vault Path",
+    "description": "Label for vault path input"
+  },
+  "settings_vaultPathPlaceholder": {
+    "message": "e.g., AI/{platform}",
+    "description": "Placeholder for vault path input"
+  },
+  "settings_advancedSettings": {
+    "message": "Advanced Settings",
+    "description": "Collapsible section title for advanced settings"
+  },
+  "settings_vaultPathHelp": {
+    "message": "Use {platform} to auto-organize by source (gemini, claude, chatgpt, perplexity)",
+    "description": "Help text explaining template variable for vault path"
+  },
+  "settings_messageFormat": {
+    "message": "Message Format",
+    "description": "Label for message format select"
+  },
+  "settings_format_callout": {
+    "message": "Callout (Recommended)",
+    "description": "Callout format option"
+  },
+  "settings_format_blockquote": {
+    "message": "Blockquote",
+    "description": "Blockquote format option"
+  },
+  "settings_format_plain": {
+    "message": "Plain",
+    "description": "Plain format option"
+  },
+  "settings_userCallout": {
+    "message": "User Callout Type",
+    "description": "Label for user callout type"
+  },
+  "settings_assistantCallout": {
+    "message": "Assistant Callout Type",
+    "description": "Label for assistant callout type"
+  },
+  "settings_includeQuestionHeaders": {
+    "message": "Add `## ` headers before user messages",
+    "description": "Checkbox label for issue #187 question header option"
+  },
+  "settings_includeQuestionHeadersHelp": {
+    "message": "Prepend a level-2 heading (first 60 chars of the question) for TOC navigation in long conversations.",
+    "description": "Help text for question header option"
+  },
+  "settings_frontmatter": {
+    "message": "Frontmatter Options",
+    "description": "Section title for frontmatter options"
+  },
+  "settings_includeId": {
+    "message": "Include ID",
+    "description": "Checkbox label for include ID"
+  },
+  "settings_includeTitle": {
+    "message": "Include Title",
+    "description": "Checkbox label for include title"
+  },
+  "settings_includeTags": {
+    "message": "Include Tags",
+    "description": "Checkbox label for include tags"
+  },
+  "settings_includeSource": {
+    "message": "Include Source & URL",
+    "description": "Checkbox label for include source"
+  },
+  "settings_includeDates": {
+    "message": "Include Dates",
+    "description": "Checkbox label for include dates"
+  },
+  "settings_includeMessageCount": {
+    "message": "Include Message Count",
+    "description": "Checkbox label for include message count"
+  },
+  "settings_timezone": {
+    "message": "Timezone",
+    "description": "Label for timezone select dropdown"
+  },
+  "settings_timezoneHelp": {
+    "message": "Timezone for created/modified dates in frontmatter",
+    "description": "Help text for timezone select"
+  },
+  "settings_testConnection": {
+    "message": "Test Connection",
+    "description": "Test connection button text"
+  },
+  "settings_save": {
+    "message": "Save Settings",
+    "description": "Save button text"
+  },
+  "settings_showApiKey": {
+    "message": "Show API key",
+    "description": "Tooltip for show API key button"
+  },
+  "settings_hideApiKey": {
+    "message": "Hide API key",
+    "description": "Tooltip for hide API key button"
+  },
+
+  "toast_success_created": {
+    "message": "Created: $FILE$",
+    "description": "Success message when file is created",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "conversation-abc123.md"
+      }
+    }
+  },
+  "toast_success_updated": {
+    "message": "Updated: $FILE$",
+    "description": "Success message when file is updated",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "conversation-abc123.md"
+      }
+    }
+  },
+  "toast_error_noApiKey": {
+    "message": "Please configure your Obsidian API key in the extension settings",
+    "description": "Error when API key is not set"
+  },
+  "toast_error_connectionFailed": {
+    "message": "Cannot connect to Obsidian. Is it running?",
+    "description": "Error when connection fails"
+  },
+  "toast_error_extractionFailed": {
+    "message": "Failed to extract conversation",
+    "description": "Error when extraction fails"
+  },
+  "toast_error_saveFailed": {
+    "message": "Failed to save: $ERROR$",
+    "description": "Error when save fails",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "Network error"
+      }
+    }
+  },
+  "toast_info_extracting": {
+    "message": "Extracting conversation...",
+    "description": "Info message during extraction"
+  },
+  "toast_info_saving": {
+    "message": "Saving to Obsidian...",
+    "description": "Info message during save"
+  },
+  "toast_warning_partial": {
+    "message": "Some content may not have been extracted",
+    "description": "Warning when partial extraction"
+  },
+
+  "error_invalidApiKey": {
+    "message": "Invalid API key format",
+    "description": "Error for invalid API key"
+  },
+  "error_apiKeyTooShort": {
+    "message": "API key is too short (minimum 16 characters)",
+    "description": "Error for short API key"
+  },
+  "error_apiKeyRequired": {
+    "message": "API key is required",
+    "description": "Error when API key is empty"
+  },
+  "error_invalidVaultPath": {
+    "message": "Vault path contains invalid characters",
+    "description": "Error for invalid vault path"
+  },
+  "error_pathTraversal": {
+    "message": "Path traversal detected in vault path",
+    "description": "Error for path traversal attempt"
+  },
+  "error_vaultPathTooLong": {
+    "message": "Vault path is too long (max 200 characters)",
+    "description": "Error for long vault path"
+  },
+  "error_connectionTimeout": {
+    "message": "Connection timed out. Please check your settings.",
+    "description": "Error for connection timeout"
+  },
+  "error_obsidianNotRunning": {
+    "message": "Obsidian REST API is not running. Please ensure Obsidian is open and the Local REST API plugin is enabled.",
+    "description": "Error when Obsidian is not running"
+  },
+  "error_invalidUrl": {
+    "message": "Invalid API URL. Must be http:// or https:// URL",
+    "description": "Error for invalid API URL"
+  },
+
+  "status_connectionSuccess": {
+    "message": "Connection successful!",
+    "description": "Success status for connection test"
+  },
+  "status_settingsSaved": {
+    "message": "Settings saved successfully!",
+    "description": "Success status for settings save"
+  },
+  "status_testing": {
+    "message": "Testing connection...",
+    "description": "Status while testing connection"
+  },
+
+  "settings_outputDestinations": {
+    "message": "Output Destinations",
+    "description": "Section title for output destinations"
+  },
+  "settings_outputHelp": {
+    "message": "Select where to save conversations",
+    "description": "Help text for output destinations"
+  },
+  "settings_outputObsidian": {
+    "message": "Obsidian (API)",
+    "description": "Obsidian output option"
+  },
+  "settings_outputFile": {
+    "message": "Download File",
+    "description": "File download output option"
+  },
+  "settings_outputClipboard": {
+    "message": "Copy to Clipboard",
+    "description": "Clipboard output option"
+  },
+  "success_allOutputs": {
+    "message": "Saved to all destinations",
+    "description": "Success message when all outputs succeed"
+  },
+  "success_partialOutputs": {
+    "message": "Partial success: $DETAILS$",
+    "description": "Warning message for partial success",
+    "placeholders": {
+      "details": {
+        "content": "$1",
+        "example": "Obsidian ✓, File ✗"
+      }
+    }
+  },
+  "error_noOutputSelected": {
+    "message": "Please select at least one output destination",
+    "description": "Error when no output is selected"
+  },
+  "error_allOutputsFailed": {
+    "message": "Failed to save",
+    "description": "Error when all outputs fail"
+  },
+  "tooltip_obsidianDisabled": {
+    "message": "Enable Obsidian output to configure",
+    "description": "Tooltip when Obsidian settings are disabled"
+  },
+  "error_downloadCanceled": {
+    "message": "Download was canceled",
+    "description": "Error when download is canceled"
+  },
+  "error_networkError": {
+    "message": "Network error occurred",
+    "description": "Error for network issues"
+  },
+  "error_permissionDenied": {
+    "message": "Permission denied",
+    "description": "Error for permission issues"
+  },
+  "error_clipboardFailed": {
+    "message": "Failed to copy to clipboard",
+    "description": "Error when clipboard copy fails"
+  },
+  "error_outputFailed": {
+    "message": "Failed to save to $OUTPUT$",
+    "description": "Error for specific output failure",
+    "placeholders": {
+      "output": {
+        "content": "$1",
+        "example": "Obsidian"
+      }
+    }
+  },
+  "output_obsidian": {
+    "message": "Obsidian",
+    "description": "Obsidian output name"
+  },
+  "output_file": {
+    "message": "file",
+    "description": "File output name"
+  },
+  "output_clipboard": {
+    "message": "clipboard",
+    "description": "Clipboard output name"
+  },
+
+  "settings_enableAppendMode": {
+    "message": "Append Mode",
+    "description": "Label for append mode toggle"
+  },
+  "settings_appendModeHelp": {
+    "message": "Only add new messages to existing notes",
+    "description": "Help text for append mode toggle"
+  },
+  "settings_enableToolContent": {
+    "message": "Include tool/search results",
+    "description": "Label for tool content toggle"
+  },
+  "settings_toolContentHelp": {
+    "message": "Save web search and tool results from Claude",
+    "description": "Help text for tool content toggle"
+  },
+
+  "toast_appended": {
+    "message": "$COUNT$ new message(s) appended",
+    "description": "Toast when messages are appended",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "toast_noNewMessages": {
+    "message": "No new messages to append",
+    "description": "Toast when no new messages found"
+  }
+}

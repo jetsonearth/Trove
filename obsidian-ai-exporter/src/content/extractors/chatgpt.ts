@@ -1,0 +1,221 @@
+/**
+ * ChatGPT Extractor
+ *
+ * Extracts conversations from ChatGPT (chatgpt.com)
+ * Supports normal chat mode (Deep Research treated as normal conversation)
+ *
+ * @see docs/design/DES-003-chatgpt-extractor.md
+ */
+
+import { BaseExtractor } from './base';
+import { sanitizeHtml } from '../../lib/sanitize';
+import type { ConversationMessage } from '../../lib/types';
+
+import { SELECTORS } from './selectors/chatgpt';
+
+/**
+ * ChatGPT conversation extractor
+ *
+ * Implements IConversationExtractor interface
+ * @see src/lib/types.ts
+ */
+export class ChatGPTExtractor extends BaseExtractor {
+  readonly platform = 'chatgpt';
+
+  // ========== Platform Detection ==========
+
+  /**
+   * Check if this extractor can handle the current page
+   *
+   * IMPORTANT: Uses strict comparison (===) to prevent
+   * subdomain attacks like "evil-chatgpt.com.attacker.com"
+   * @see NFR-001-1 in design document
+   */
+  canExtract(): boolean {
+    return window.location.hostname === 'chatgpt.com';
+  }
+
+  // ========== ID & Title Extraction ==========
+
+  /**
+   * Extract conversation ID from URL
+   *
+   * URL formats:
+   *   https://chatgpt.com/c/{uuid}
+   *   https://chatgpt.com/g/{gpt-slug}/c/{uuid}
+   * @returns UUID string or null if not found
+   */
+  getConversationId(): string | null {
+    // Match /c/{uuid} pattern (works for both regular and custom GPT URLs)
+    const match = window.location.pathname.match(/\/c\/([a-f0-9-]+)/i);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Get conversation title
+   *
+   * Priority:
+   * 1. document.title (via getPageTitle())
+   * 2. First user message content (truncated to MAX_CONVERSATION_TITLE_LENGTH)
+   * 3. Default title
+   */
+  getTitle(): string {
+    return (
+      this.getPageTitle() ??
+      this.getFirstMessageTitle(SELECTORS.userMessage, 'Untitled ChatGPT Conversation')
+    );
+  }
+
+  /**
+   * Fetch the conversation's actual creation date from ChatGPT's API.
+   * Same-origin fetch - the browser sends session cookies automatically.
+   */
+  protected async getConversationDate(): Promise<Date | null> {
+    const convId = this.getConversationId();
+    if (!convId) return null;
+
+    // Get access token from session
+    const sessionResp = await fetch('/api/auth/session', { credentials: 'include' });
+    if (!sessionResp.ok) return null;
+    const session = await sessionResp.json();
+    const token = session?.accessToken;
+    if (!token) return null;
+
+    // Fetch conversation metadata
+    const convResp = await fetch(`/backend-api/conversation/${convId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+    });
+    if (!convResp.ok) return null;
+    const conv = await convResp.json();
+    return conv?.create_time ? new Date(conv.create_time * 1000) : null;
+  }
+
+  // ========== Message Extraction ==========
+
+  /**
+   * Extract all messages from conversation
+   *
+   * Uses section[data-turn-id] to find conversation turns (with article fallback),
+   * then extracts User/Assistant messages in DOM order
+   * @see FR-002 in design document
+   */
+  extractMessages(): ConversationMessage[] {
+    const messages: ConversationMessage[] = [];
+
+    // Find all conversation turns
+    const turns = this.queryAllWithFallback<HTMLElement>(SELECTORS.conversationTurn);
+
+    if (turns.length === 0) {
+      console.warn('[G2O] No conversation turns found with primary selectors');
+      return messages;
+    }
+
+    // Process each turn
+    turns.forEach((turn, index) => {
+      // Determine role from data-turn attribute or data-message-author-role
+      const turnRole = turn.getAttribute('data-turn');
+      const messageEl = turn.querySelector('[data-message-author-role]');
+      const authorRole = messageEl?.getAttribute('data-message-author-role');
+
+      const role = turnRole || authorRole;
+
+      if (role === 'user') {
+        const content = this.extractUserContent(turn);
+        if (content) {
+          messages.push({
+            id: `user-${index}`,
+            role: 'user',
+            content,
+            index: messages.length,
+          });
+        }
+      } else if (role === 'assistant') {
+        const content = this.extractAssistantContent(turn);
+        if (content) {
+          messages.push({
+            id: `assistant-${index}`,
+            role: 'assistant',
+            content,
+            htmlContent: content,
+            index: messages.length,
+          });
+        }
+      }
+    });
+
+    return messages;
+  }
+
+  /**
+   * Extract user message content (plain text)
+   */
+  private extractUserContent(turnElement: Element): string {
+    // Find user message content within the turn
+    const contentEl = this.queryWithFallback<HTMLElement>(SELECTORS.userMessage, turnElement);
+    if (contentEl?.textContent) {
+      return this.sanitizeText(contentEl.textContent);
+    }
+
+    // Fallback: try to get any .whitespace-pre-wrap content
+    const fallbackEl = turnElement.querySelector('.whitespace-pre-wrap');
+    if (fallbackEl?.textContent) {
+      return this.sanitizeText(fallbackEl.textContent);
+    }
+
+    return '';
+  }
+
+  /**
+   * Extract assistant response content (HTML for markdown conversion)
+   *
+   * All HTML is sanitized via DOMPurify to prevent XSS
+   * Also cleans utm_source parameters from citation URLs
+   * @see NFR-001-2 in design document
+   */
+  private extractAssistantContent(turnElement: Element): string {
+    // Find markdown content within the turn
+    const markdownEl = this.queryWithFallback<HTMLElement>(SELECTORS.markdownContent, turnElement);
+    if (markdownEl) {
+      // Clean citation URLs before returning
+      const cleanedHtml = this.cleanCitationUrls(markdownEl.innerHTML);
+      return sanitizeHtml(cleanedHtml);
+    }
+
+    // Fallback: try assistantResponse selectors
+    const assistantEl = this.queryWithFallback<HTMLElement>(
+      SELECTORS.assistantResponse,
+      turnElement
+    );
+    if (assistantEl) {
+      const cleanedHtml = this.cleanCitationUrls(assistantEl.innerHTML);
+      return sanitizeHtml(cleanedHtml);
+    }
+
+    return '';
+  }
+
+  /**
+   * Clean utm_source parameter from citation URLs
+   *
+   * ChatGPT adds ?utm_source=chatgpt.com to citation URLs.
+   * Uses DOM-level manipulation instead of regex for safety.
+   * @see DES-003-chatgpt-extractor.md Section 8.2
+   */
+  private cleanCitationUrls(html: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('a[href]').forEach(el => {
+      const anchor = el as HTMLAnchorElement;
+      try {
+        const url = new URL(anchor.href);
+        if (url.searchParams.get('utm_source') === 'chatgpt.com') {
+          url.searchParams.delete('utm_source');
+          anchor.href = url.toString();
+        }
+      } catch {
+        // malformed href — leave for DOMPurify to handle
+      }
+    });
+    return doc.body.innerHTML;
+  }
+}

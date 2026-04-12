@@ -1,0 +1,1365 @@
+/**
+ * DOM Fixture Helpers for Gemini Extractor Testing
+ */
+
+/**
+ * Load HTML fixture into document body
+ */
+export function loadFixture(html: string): void {
+  document.body.innerHTML = html;
+}
+
+/**
+ * Clear document body
+ */
+export function clearFixture(): void {
+  document.body.innerHTML = '';
+}
+
+/**
+ * Message structure for creating Gemini conversation DOM
+ */
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Create minimal Gemini conversation DOM structure
+ * Replicates the Angular component structure used by Gemini
+ */
+export function createGeminiConversationDOM(messages: ConversationMessage[]): string {
+  const turns: string[] = [];
+
+  for (let i = 0; i < messages.length; i += 2) {
+    const userMsg = messages[i];
+    const assistantMsg = messages[i + 1];
+
+    if (userMsg?.role !== 'user') continue;
+
+    const userHtml = `
+      <user-query>
+        <div class="query-content">
+          ${userMsg.content
+            .split('\n')
+            .map(line => `<p class="query-text-line">${line}</p>`)
+            .join('\n          ')}
+        </div>
+      </user-query>
+    `;
+
+    const assistantHtml = assistantMsg
+      ? `
+      <model-response>
+        <div class="response-content">
+          <div class="markdown markdown-main-panel">${assistantMsg.content}</div>
+        </div>
+      </model-response>
+    `
+      : '';
+
+    turns.push(`
+      <div class="conversation-container" data-turn-index="${Math.floor(i / 2)}">
+        ${userHtml}
+        ${assistantHtml}
+      </div>
+    `);
+  }
+
+  return `
+    <div class="conversation-thread">
+      ${turns.join('\n')}
+    </div>
+  `;
+}
+
+/**
+ * Set window.location for Gemini URL testing
+ */
+export function setGeminiLocation(conversationId: string): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: 'gemini.google.com',
+      pathname: `/app/${conversationId}`,
+      href: `https://gemini.google.com/app/${conversationId}`,
+      origin: 'https://gemini.google.com',
+      protocol: 'https:',
+      host: 'gemini.google.com',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Set window.location for non-Gemini URL
+ */
+export function setNonGeminiLocation(hostname: string, pathname = '/'): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname,
+      pathname,
+      href: `https://${hostname}${pathname}`,
+      origin: `https://${hostname}`,
+      protocol: 'https:',
+      host: hostname,
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Reset window.location to default
+ */
+export function resetLocation(): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: 'localhost',
+      pathname: '/',
+      href: 'http://localhost/',
+      origin: 'http://localhost',
+      protocol: 'http:',
+      host: 'localhost',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Create title element for Gemini page
+ */
+export function setGeminiTitle(title: string): void {
+  // Remove existing title elements
+  document.querySelectorAll('title, [data-test-title]').forEach(el => el.remove());
+
+  // Create title element
+  const titleEl = document.createElement('title');
+  titleEl.textContent = title;
+  document.head.appendChild(titleEl);
+
+  // Also create the Gemini-specific title element structure
+  const geminiTitle = document.createElement('div');
+  geminiTitle.setAttribute('data-test-title', 'true');
+  geminiTitle.className = 'conversation-title';
+  geminiTitle.textContent = title;
+  document.body.insertBefore(geminiTitle, document.body.firstChild);
+}
+
+/**
+ * Escape HTML entities
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Create Deep Research パネル DOM 構造
+ *
+ * Updated 2026-03-23: Gemini moved the report title from the toolbar
+ * (h2.title-text.gds-title-s) into the content area as the first <h1>.
+ * The toolbar now contains only close/action buttons.
+ */
+export function createDeepResearchDOM(title: string, content: string): string {
+  return `
+    <deep-research-immersive-panel class="ng-star-inserted">
+      <div class="toolbar has-title mobile-layout">
+        <div class="left-panel"></div>
+        <div class="action-buttons mobile-layout"></div>
+      </div>
+      <div class="container">
+        <response-container>
+          <structured-content-container data-test-id="message-content">
+            <message-content id="extended-response-message-content">
+              <div id="extended-response-markdown-content"
+                   class="markdown markdown-main-panel">
+                <h1>${title}</h1>
+                ${content}
+              </div>
+            </message-content>
+          </structured-content-container>
+        </response-container>
+      </div>
+    </deep-research-immersive-panel>
+  `;
+}
+
+/**
+ * Creates Deep Research DOM with inline citations and source list
+ */
+export function createDeepResearchDOMWithLinks(
+  title: string,
+  contentWithCitations: string,
+  sources: Array<{ url: string; title: string; domain: string }>
+): string {
+  // Generate source list HTML
+  const sourceListHtml = sources
+    .map(
+      (source, i) => `
+      <a data-test-id="browse-web-item-link"
+         href="${source.url}"
+         target="_blank" rel="noopener">
+        <span data-test-id="title" class="sub-title">${source.title}</span>
+        <span data-test-id="domain-name" class="display-name">${source.domain}</span>
+      </a>
+    `
+    )
+    .join('\n');
+
+  return `
+    <deep-research-immersive-panel class="ng-star-inserted">
+      <div class="toolbar has-title mobile-layout">
+        <div class="left-panel"></div>
+        <div class="action-buttons mobile-layout"></div>
+      </div>
+      <div class="container">
+        <response-container>
+          <structured-content-container data-test-id="message-content">
+            <message-content id="extended-response-message-content">
+              <div id="extended-response-markdown-content"
+                   class="markdown markdown-main-panel">
+                <h1>${title}</h1>
+                ${contentWithCitations}
+              </div>
+            </message-content>
+          </structured-content-container>
+        </response-container>
+      </div>
+    </deep-research-immersive-panel>
+    <deep-research-source-lists>
+      <collapsible-button data-test-id="used-sources-button">
+        <span class="gds-title-m">レポートに使用されているソース</span>
+      </collapsible-button>
+      <div id="used-sources-list">
+        ${sourceListHtml}
+      </div>
+    </deep-research-source-lists>
+  `;
+}
+
+/**
+ * Create inline citation HTML element
+ */
+/**
+ * Create inline citation element
+ *
+ * Note: data-turn-source-index is 1-based (verified 2025-01-12)
+ * Mapping: sources[N] -> data-turn-source-index = N + 1
+ *
+ * @param arrayIndex 0-based index in sources array
+ * @returns HTML string with 1-based data-turn-source-index
+ */
+export function createInlineCitation(arrayIndex: number): string {
+  const turnSourceIndex = arrayIndex + 1; // Convert to 1-based
+  return `<source-footnote class="ng-star-inserted"><sup class="superscript" data-turn-source-index="${turnSourceIndex}"></sup></source-footnote>`;
+}
+
+/**
+ * Create パネルのみ（コンテンツなし）の DOM
+ */
+export function createEmptyDeepResearchPanel(): string {
+  return `
+    <deep-research-immersive-panel class="ng-star-inserted">
+      <div class="toolbar has-title mobile-layout">
+        <div class="left-panel"></div>
+        <div class="action-buttons mobile-layout"></div>
+      </div>
+      <div class="container">
+        <response-container>
+        </response-container>
+      </div>
+    </deep-research-immersive-panel>
+  `;
+}
+
+// ========== Gemini Scroll Helpers ==========
+
+/**
+ * Wrap conversation HTML in Gemini's scroll container structure
+ *
+ * Matches live Gemini DOM: infinite-scroller has data-test-id="chat-history-container"
+ * and is the actual scrollable element (overflow-y: scroll).
+ * #chat-history is a non-scrolling wrapper.
+ */
+export function createGeminiScrollableDOM(conversationHTML: string): string {
+  return `
+    <div id="chat-history" class="chat-history-scroll-container">
+      <infinite-scroller class="chat-history" data-test-id="chat-history-container">
+        ${conversationHTML}
+      </infinite-scroller>
+    </div>
+  `;
+}
+
+/**
+ * Mock scroll properties on infinite-scroller for jsdom tests
+ * Must be called AFTER loadFixture()
+ *
+ * infinite-scroller is the actual scrollable element in Gemini's DOM.
+ * It fires onScrolledTopPastThreshold (edge-triggered) when scrollTop
+ * crosses below a threshold. The auto-scroll code re-arms by scrolling
+ * to scrollHeight before scrolling back to 0.
+ *
+ * @param scrollTop - Initial scrollTop value (> 0 simulates partial load)
+ * @param onScrollToTop - Callback fired when scrollTop is set to 0
+ *                        (simulates onScrolledTopPastThreshold → content load)
+ */
+export function mockScrollContainer(scrollTop: number, onScrollToTop?: () => void): void {
+  const container = document.querySelector('infinite-scroller');
+  if (!container) return;
+
+  let currentScrollTop = scrollTop;
+
+  Object.defineProperty(container, 'scrollTop', {
+    get: () => currentScrollTop,
+    set: (value: number) => {
+      currentScrollTop = value;
+      if (value === 0 && onScrollToTop) onScrollToTop();
+    },
+    configurable: true,
+  });
+
+  // Mock scrollHeight for re-arm logic (jsdom has no layout engine)
+  Object.defineProperty(container, 'scrollHeight', {
+    get: () => 10000,
+    configurable: true,
+  });
+}
+
+// ========== Claude DOM Helpers ==========
+
+/**
+ * Message structure for creating Claude conversation DOM
+ */
+interface ClaudeConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  thinking?: string[]; // Extended Thinking chunks (assistant only)
+}
+
+/**
+ * Create Extended Thinking assistant response DOM
+ *
+ * Generates the grid layout with .row-start-1 (thinking) and .row-start-2 (response)
+ * @see docs/investigation/claude-extended-thinking-dom.md
+ */
+function createClaudeExtendedThinkingResponse(
+  content: string,
+  thinkingChunks: string[],
+  collapsed: boolean = true
+): string {
+  const gridRows = collapsed ? '0fr_1fr' : '1fr_1fr';
+  const thinkingMarkdown = thinkingChunks
+    .map(chunk => `<div class="standard-markdown">${chunk}</div>`)
+    .join('\n                            ');
+
+  return `
+    <div class="grid grid-rows-[${gridRows}]">
+      <div class="row-start-1">
+        <div style="overflow:hidden; min-height:0;">
+          <div class="group/thinking border rounded">
+            <div>
+              <button>Claude's Thoughts</button>
+              <div>
+                <div>
+                  <div class="grid">
+                    ${thinkingMarkdown}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row-start-2">
+        <div>
+          <div class="standard-markdown">
+            ${content}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/**
+ * Create Claude conversation DOM structure
+ *
+ * Replicates the structure used by Claude AI
+ * @see docs/design/DES-002-claude-extractor.md Section 5.7.1
+ */
+export function createClaudeConversationDOM(messages: ClaudeConversationMessage[]): string {
+  const blocks: string[] = [];
+
+  messages.forEach((msg, index) => {
+    if (msg.role === 'user') {
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="bg-bg-300 rounded-xl pl-2.5 py-2.5">
+            <div data-testid="user-message">
+              <p class="whitespace-pre-wrap break-words">${escapeHtmlForClaude(msg.content)}</p>
+            </div>
+            <span class="text-text-500 text-xs" data-state="closed">Dec 6, 2025</span>
+          </div>
+        </div>
+      `);
+    } else {
+      const responseInner = msg.thinking
+        ? createClaudeExtendedThinkingResponse(msg.content, msg.thinking)
+        : `<div class="standard-markdown">
+              ${msg.content}
+            </div>`;
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="font-claude-response" data-is-streaming="false">
+            ${responseInner}
+          </div>
+        </div>
+      `);
+    }
+  });
+
+  return `
+    <div class="conversation-thread">
+      ${blocks.join('\n')}
+    </div>
+  `;
+}
+
+/**
+ * Create Claude Deep Research DOM structure
+ *
+ * @see docs/design/DES-002-claude-extractor.md Section 5.7.2
+ */
+export function createClaudeDeepResearchDOM(
+  title: string,
+  content: string,
+  citations?: Array<{ url: string; title: string }>
+): string {
+  // Generate inline citations if provided
+  let contentWithCitations = content;
+  if (citations && citations.length > 0) {
+    citations.forEach((citation, index) => {
+      const citationHtml = createClaudeInlineCitation(citation.url, citation.title);
+      // Append citation markers to content (for testing)
+      contentWithCitations += `<p>Reference ${index + 1}: ${citationHtml}</p>`;
+    });
+  }
+
+  return `
+    <div id="markdown-artifact" class="font-claude-response">
+      <div class="standard-markdown">
+        <h1 class="text-text-100">${escapeHtmlForClaude(title)}</h1>
+        ${contentWithCitations}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Set window.location for Claude URL testing
+ *
+ * @param conversationId UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ */
+export function setClaudeLocation(conversationId: string): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: 'claude.ai',
+      pathname: `/chat/${conversationId}`,
+      href: `https://claude.ai/chat/${conversationId}`,
+      origin: 'https://claude.ai',
+      protocol: 'https:',
+      host: 'claude.ai',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Set window.location for non-Claude URL (security testing)
+ *
+ * Used to test hostname validation against subdomain attacks
+ */
+export function setNonClaudeLocation(hostname: string, pathname = '/'): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname,
+      pathname,
+      href: `https://${hostname}${pathname}`,
+      origin: `https://${hostname}`,
+      protocol: 'https:',
+      host: hostname,
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Create Claude inline citation element
+ *
+ * @param url Source URL
+ * @param title Link text/title
+ */
+export function createClaudeInlineCitation(url: string, title: string): string {
+  // Note: URL is not escaped to preserve the href^="http" selector compatibility
+  return `
+    <span class="inline-flex">
+      <a href="${url}" target="_blank" rel="noopener">
+        <span class="text-text-300">${escapeHtmlForClaude(title)}</span>
+      </a>
+    </span>
+  `;
+}
+
+/**
+ * Create a complete Claude conversation page
+ */
+export function createClaudePage(
+  conversationId: string,
+  messages: ClaudeConversationMessage[]
+): void {
+  setClaudeLocation(conversationId);
+  loadFixture(`
+    <div class="app-container">
+      ${createClaudeConversationDOM(messages)}
+    </div>
+  `);
+}
+
+/**
+ * Create a Claude Deep Research page
+ */
+export function createClaudeDeepResearchPage(
+  conversationId: string,
+  title: string,
+  content: string,
+  citations?: Array<{ url: string; title: string }>
+): void {
+  setClaudeLocation(conversationId);
+  loadFixture(`
+    <div class="app-container">
+      ${createClaudeDeepResearchDOM(title, content, citations)}
+    </div>
+  `);
+}
+
+/**
+ * Create empty Claude Deep Research panel (no content)
+ */
+export function createEmptyClaudeDeepResearchPanel(): string {
+  return `
+    <div id="markdown-artifact" class="font-claude-response">
+      <div class="standard-markdown">
+        <h1 class="text-text-100">Test Report</h1>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Escape HTML entities for Claude DOM helpers
+ */
+function escapeHtmlForClaude(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Search result item for tool-use test fixtures
+ */
+interface SearchResultItem {
+  title: string;
+  domain: string;
+}
+
+/**
+ * Options for creating a tool-use grid block
+ */
+interface ToolUseGridOptions {
+  /** Summary button text (e.g., "Searched the web") */
+  summaryText: string;
+  /** Search query text (e.g., "Rust latest version 2026") */
+  searchQuery?: string;
+  /** Number of search results (e.g., 10) */
+  searchResultCount?: number;
+  /** Search result items with title and domain */
+  searchResults?: SearchResultItem[];
+  /** Intermediate text blocks in .standard-markdown within .row-start-1 */
+  toolSteps?: string[];
+  /** Response text in .row-start-2 */
+  responseText: string;
+}
+
+/**
+ * Create a tool-use assistant response inside .font-claude-response
+ *
+ * Matches the real Claude DOM structure verified via DevTools:
+ * .row-start-1 = tool activity (summary button, search query, search results, intermediate text)
+ * .row-start-2 = summary/response text
+ *
+ * @see docs/design/DES-006-tool-use-content.md
+ */
+function createClaudeToolUseBlock(options: ToolUseGridOptions): string {
+  const toolStepsHtml = (options.toolSteps ?? [])
+    .map(
+      step => `
+              <div class="standard-markdown grid-cols-1 grid">
+                <p class="font-claude-response-body text-sm">${step}</p>
+              </div>`
+    )
+    .join('\n');
+
+  // Search query button (group/row)
+  const searchQueryHtml = options.searchQuery
+    ? `
+              <div class="flex flex-col shrink-0">
+                <div class="transition-colors rounded-lg duration-150">
+                  <div class="flex flex-row items-center py-1">
+                    <div class="flex-1 min-w-0">
+                      <button class="group/row flex flex-row items-center rounded-lg px-2.5 w-full justify-between text-text-300 !cursor-default">
+                        <div class="flex flex-row items-center gap-2 min-w-0 flex-1">
+                          <div class="text-sm text-text-500 text-left truncate w-0 flex-grow">${escapeHtmlForClaude(options.searchQuery)}</div>
+                        </div>
+                        <div class="flex flex-row items-center gap-1.5 shrink-0">
+                          <p class="pl-1 text-text-500 font-small shrink-0 whitespace-nowrap">${options.searchResultCount ?? 0} results</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>` +
+      (options.searchResults
+        ? `
+                  <div class="flex flex-row">
+                    <div class="flex-1 min-w-0">
+                      <div class="border-[0.5px] border-border-300 rounded-lg p-1 mx-2.5 mt-1 mb-2 max-h-[150px] overflow-y-auto bg-bg-000/50">
+                        <div class="flex flex-col gap-1">${options.searchResults
+                          .map(
+                            r => `
+                          <div class="flex flex-row gap-3 items-center px-2 py-1.5 w-full rounded-md cursor-pointer transition-colors hover:bg-bg-200">
+                            <div class="flex-shrink-0"><img alt="favicon" loading="lazy" width="12" height="12" src="" /></div>
+                            <div class="w-0 flex-grow font-small text-text-300 truncate">${escapeHtmlForClaude(r.title)}</div>
+                            <div class="text-xs text-text-400 shrink-0">${escapeHtmlForClaude(r.domain)}</div>
+                          </div>`
+                          )
+                          .join('')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>`
+        : '') +
+      `
+                </div>
+              </div>`
+    : '';
+
+  return `
+    <div data-test-render-count="2" class="group" style="height: auto;">
+      <div class="font-claude-response" data-is-streaming="false">
+        <div><div class="grid grid-rows-[auto_auto] min-w-0">
+          <div class="row-start-1 col-start-1 min-w-0">
+            <div class="min-w-0 pl-2 py-1.5">
+              <button class="group/status"><span class="truncate text-sm font-base">${escapeHtmlForClaude(options.summaryText)}</span></button>
+              ${searchQueryHtml}
+              ${toolStepsHtml}
+            </div>
+          </div>
+          <div class="row-start-2 col-start-1 relative grid isolate min-w-0">
+            <div class="standard-markdown">${options.responseText}</div>
+          </div>
+        </div></div>
+      </div>
+    </div>`;
+}
+
+/**
+ * Create a Claude page with tool-use blocks in the conversation
+ *
+ * Each message can optionally include tool-use grid structure.
+ * Tool-use is specified on assistant messages via the `toolUse` property.
+ *
+ * @param conversationId UUID for URL
+ * @param messages Conversation messages (assistant messages may include toolUse)
+ */
+export function createClaudePageWithToolUse(
+  conversationId: string,
+  messages: Array<
+    ClaudeConversationMessage & { toolUse?: Omit<ToolUseGridOptions, 'responseText'> }
+  >
+): void {
+  setClaudeLocation(conversationId);
+
+  const blocks: string[] = [];
+
+  messages.forEach(msg => {
+    if (msg.role === 'user') {
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="bg-bg-300 rounded-xl pl-2.5 py-2.5">
+            <div data-testid="user-message">
+              <p class="whitespace-pre-wrap break-words">${escapeHtmlForClaude(msg.content)}</p>
+            </div>
+            <span class="text-text-500 text-xs" data-state="closed">Dec 6, 2025</span>
+          </div>
+        </div>
+      `);
+    } else if (msg.toolUse) {
+      // Assistant message with tool-use grid structure
+      blocks.push(
+        createClaudeToolUseBlock({
+          ...msg.toolUse,
+          responseText: msg.content,
+        })
+      );
+    } else {
+      // Normal assistant message
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="font-claude-response" data-is-streaming="false">
+            <div class="standard-markdown">
+              ${msg.content}
+            </div>
+          </div>
+        </div>
+      `);
+    }
+  });
+
+  loadFixture(`
+    <div class="app-container">
+      <div class="conversation-thread">
+        ${blocks.join('\n')}
+      </div>
+    </div>
+  `);
+}
+
+/**
+ * Options for creating a thinking-status assistant response
+ * where .row-start-2 is empty and content is a sibling of the grid.
+ *
+ * This matches Claude's new pattern for responses with thinking status
+ * (e.g., tool results, map embeds) where the grid only holds the status
+ * line and actual content lives outside.
+ */
+interface ThinkingStatusOptions {
+  /** Status text shown in the thinking button (e.g., "ルート案をまとめる準備を整えた。") */
+  statusText: string;
+  /** HTML content to place as a sibling after the grid (standard-markdown) */
+  responseContent: string;
+  /** Optional embedded component HTML (e.g., map) placed between grid and response */
+  embeddedComponent?: string;
+}
+
+/**
+ * Create a Claude assistant response with thinking status + grid-sibling content
+ *
+ * Replicates the DOM pattern where:
+ * - .row-start-1 has a thinking status button
+ * - .row-start-2 is empty
+ * - Actual content (.standard-markdown) is a sibling of the grid wrapper
+ *
+ * @see Issue: Claude responses with embedded maps/tools have empty .row-start-2
+ */
+function createClaudeThinkingStatusResponse(options: ThinkingStatusOptions): string {
+  const embeddedHtml = options.embeddedComponent
+    ? `<div class="pl-2 pt-1 pb-2">${options.embeddedComponent}</div>`
+    : '';
+
+  return `
+    <div><div class="grid grid-rows-[auto_auto] min-w-0">
+      <div class="row-start-1 col-start-1 min-w-0">
+        <div class="min-w-0 pl-2 py-1.5">
+          <div class="flex items-center gap-2 rounded-lg">
+            <button class="group/status flex items-center gap-2 py-1 text-sm" aria-expanded="false">
+              <div class="inline-flex items-center gap-1 min-w-0">
+                <span class="truncate text-sm font-base">${escapeHtmlForClaude(options.statusText)}</span>
+              </div>
+            </button>
+          </div>
+          <div class="grid" style="grid-template-rows: 0fr;">
+            <div class="overflow-hidden min-w-0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row-start-2 col-start-1 relative grid isolate min-w-0">
+        <div class="row-start-1 col-start-1 relative z-[2] min-w-0"></div>
+      </div>
+    </div></div>
+    ${embeddedHtml}
+    <div><div class="standard-markdown grid-cols-1 grid">
+      ${options.responseContent}
+    </div></div>`;
+}
+
+/**
+ * Create a Claude page with thinking-status response pattern
+ *
+ * Creates a conversation where an assistant message uses the thinking-status
+ * pattern (empty .row-start-2, content as grid sibling).
+ */
+export function createClaudePageWithThinkingStatus(
+  conversationId: string,
+  messages: Array<
+    ClaudeConversationMessage & { thinkingStatus?: Omit<ThinkingStatusOptions, 'responseContent'> }
+  >
+): void {
+  setClaudeLocation(conversationId);
+
+  const blocks: string[] = [];
+
+  messages.forEach(msg => {
+    if (msg.role === 'user') {
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="bg-bg-300 rounded-xl pl-2.5 py-2.5">
+            <div data-testid="user-message">
+              <p class="whitespace-pre-wrap break-words">${escapeHtmlForClaude(msg.content)}</p>
+            </div>
+          </div>
+        </div>
+      `);
+    } else if (msg.thinkingStatus) {
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="font-claude-response" data-is-streaming="false">
+            ${createClaudeThinkingStatusResponse({
+              ...msg.thinkingStatus,
+              responseContent: msg.content,
+            })}
+          </div>
+        </div>
+      `);
+    } else {
+      blocks.push(`
+        <div data-test-render-count="2" class="group" style="height: auto;">
+          <div class="font-claude-response" data-is-streaming="false">
+            <div class="standard-markdown">
+              ${msg.content}
+            </div>
+          </div>
+        </div>
+      `);
+    }
+  });
+
+  loadFixture(`
+    <div class="app-container">
+      <div class="conversation-thread">
+        ${blocks.join('\n')}
+      </div>
+    </div>
+  `);
+}
+
+// ========== ChatGPT DOM Helpers ==========
+
+/**
+ * Message structure for creating ChatGPT conversation DOM
+ */
+interface ChatGPTConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  id?: string;
+}
+
+/**
+ * Create ChatGPT conversation DOM structure
+ *
+ * Replicates the structure used by ChatGPT
+ * @see docs/design/DES-003-chatgpt-extractor.md Section 5.8.1
+ */
+export function createChatGPTConversationDOM(messages: ChatGPTConversationMessage[]): string {
+  const turns: string[] = [];
+
+  messages.forEach((msg, index) => {
+    const turnId = msg.id || `turn-${index}`;
+    const messageId = `msg-${index}`;
+
+    if (msg.role === 'user') {
+      turns.push(`
+        <section
+          data-turn-id="${turnId}"
+          data-testid="conversation-turn-${index + 1}"
+          data-turn="user"
+        >
+          <div data-message-author-role="user"
+               data-message-id="${messageId}">
+            <div class="whitespace-pre-wrap">
+              ${escapeHtmlForChatGPT(msg.content)}
+            </div>
+          </div>
+        </section>
+      `);
+    } else {
+      turns.push(`
+        <section
+          data-turn-id="${turnId}"
+          data-testid="conversation-turn-${index + 1}"
+          data-turn="assistant"
+        >
+          <div data-message-author-role="assistant"
+               data-message-id="${messageId}"
+               data-message-model-slug="gpt-5-2">
+            <div class="markdown prose dark:prose-invert w-full break-words light markdown-new-styling">
+              ${msg.content}
+            </div>
+          </div>
+        </section>
+      `);
+    }
+  });
+
+  return `
+    <div class="flex flex-col text-sm pb-25">
+      ${turns.join('\n')}
+    </div>
+  `;
+}
+
+/**
+ * Set window.location for ChatGPT URL testing
+ *
+ * @param conversationId UUID format or custom ID
+ * @param prefix URL prefix: 'c' for regular chat, 'g' for custom GPT mode
+ *
+ * URL formats:
+ *   prefix='c': https://chatgpt.com/c/{conversationId}
+ *   prefix='g': https://chatgpt.com/g/{gptSlug}/c/{conversationId}
+ */
+export function setChatGPTLocation(conversationId: string, prefix: 'c' | 'g' = 'c'): void {
+  const gptSlug = 'g-abc123-test-gpt';
+  const pathname = prefix === 'g' ? `/g/${gptSlug}/c/${conversationId}` : `/c/${conversationId}`;
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: 'chatgpt.com',
+      pathname,
+      href: `https://chatgpt.com${pathname}`,
+      origin: 'https://chatgpt.com',
+      protocol: 'https:',
+      host: 'chatgpt.com',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Set window.location for non-ChatGPT URL (security testing)
+ *
+ * Used to test hostname validation against subdomain attacks
+ */
+export function setNonChatGPTLocation(hostname: string, pathname = '/'): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname,
+      pathname,
+      href: `https://${hostname}${pathname}`,
+      origin: `https://${hostname}`,
+      protocol: 'https:',
+      host: hostname,
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Create ChatGPT inline citation element
+ *
+ * @param url Source URL (with or without utm_source)
+ * @param displayText Link display text
+ */
+export function createChatGPTInlineCitation(url: string, displayText: string): string {
+  return `
+    <span class="" data-state="closed">
+      <span class="ms-1 inline-flex max-w-full items-center select-none relative top-[-0.094rem]"
+            data-testid="webpage-citation-pill">
+        <a href="${url}"
+           target="_blank"
+           rel="noopener"
+           class="flex h-4.5 overflow-hidden rounded-xl px-2 text-[9px] font-medium">
+          <span class="max-w-[15ch] grow truncate overflow-hidden text-center">
+            ${escapeHtmlForChatGPT(displayText)}
+          </span>
+        </a>
+      </span>
+    </span>
+  `;
+}
+
+/**
+ * Create a complete ChatGPT conversation page
+ */
+export function createChatGPTPage(
+  conversationId: string,
+  messages: ChatGPTConversationMessage[],
+  prefix: 'c' | 'g' = 'c'
+): void {
+  setChatGPTLocation(conversationId, prefix);
+  loadFixture(`
+    <div class="app-container">
+      ${createChatGPTConversationDOM(messages)}
+    </div>
+  `);
+}
+
+/**
+ * Escape HTML entities for ChatGPT DOM helpers
+ */
+function escapeHtmlForChatGPT(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========== Perplexity DOM Helpers ==========
+
+/**
+ * Message structure for creating Perplexity conversation DOM
+ */
+interface PerplexityConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Create Perplexity conversation DOM structure
+ *
+ * Replicates the structure used by Perplexity AI
+ * @see docs/design/DES-004-perplexity-extractor.md Section 4.2
+ */
+export function createPerplexityConversationDOM(messages: PerplexityConversationMessage[]): string {
+  const blocks: string[] = [];
+  let responseIndex = 0;
+
+  messages.forEach(msg => {
+    if (msg.role === 'user') {
+      blocks.push(`
+        <div class="group/query">
+          <div class="bg-offset rounded-2xl">
+            <span class="select-text">${escapeHtmlForPerplexity(msg.content)}</span>
+          </div>
+        </div>
+      `);
+    } else {
+      blocks.push(`
+        <div id="markdown-content-${responseIndex}" class="markdown-content">
+          <div class="prose dark:prose-invert">
+            ${msg.content}
+          </div>
+        </div>
+      `);
+      responseIndex++;
+    }
+  });
+
+  return `
+    <div class="max-w-threadContentWidth">
+      ${blocks.join('\n')}
+    </div>
+  `;
+}
+
+/**
+ * Set window.location for Perplexity URL testing
+ *
+ * @param slug Full URL slug from /search/{slug}
+ */
+export function setPerplexityLocation(slug: string): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: 'www.perplexity.ai',
+      pathname: `/search/${slug}`,
+      href: `https://www.perplexity.ai/search/${slug}`,
+      origin: 'https://www.perplexity.ai',
+      protocol: 'https:',
+      host: 'www.perplexity.ai',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Set window.location for non-Perplexity URL (security testing)
+ *
+ * Used to test hostname validation against subdomain attacks
+ */
+export function setNonPerplexityLocation(hostname: string, pathname = '/'): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname,
+      pathname,
+      href: `https://${hostname}${pathname}`,
+      origin: `https://${hostname}`,
+      protocol: 'https:',
+      host: hostname,
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+/**
+ * Create Perplexity inline citation element
+ *
+ * @param url Source URL
+ * @param displayText Link display text
+ */
+export function createPerplexityInlineCitation(url: string, displayText: string): string {
+  return `
+    <span class="citation inline" data-pplx-citation="" data-pplx-citation-url="${url}">
+      <a href="${url}">
+        <span>${escapeHtmlForPerplexity(displayText)}</span>
+      </a>
+    </span>
+  `;
+}
+
+/**
+ * Create a complete Perplexity conversation page
+ */
+export function createPerplexityPage(
+  slug: string,
+  messages: PerplexityConversationMessage[]
+): void {
+  setPerplexityLocation(slug);
+  loadFixture(`
+    <div class="app-container">
+      ${createPerplexityConversationDOM(messages)}
+    </div>
+  `);
+}
+
+/**
+ * Message structure for Perplexity Deep Research pages
+ */
+interface PerplexityDeepResearchConfig {
+  /** User query text */
+  query: string;
+  /** Report title shown in the report card header */
+  reportTitle: string;
+  /** HTML content of the Deep Research report body */
+  reportContent: string;
+  /** Optional summary HTML shown after the report card (in markdown-content div) */
+  summaryContent?: string;
+}
+
+/**
+ * Create Perplexity Deep Research DOM structure
+ *
+ * Replicates the structure used by Perplexity AI for Deep Research pages:
+ * - User query in a styled bubble
+ * - "N steps completed" indicator
+ * - Report card with header (telescope icon + title) and prose body
+ * - Optional summary response in markdown-content div
+ */
+function createPerplexityDeepResearchDOM(config: PerplexityDeepResearchConfig): string {
+  const summaryBlock = config.summaryContent
+    ? `
+      <div id="markdown-content-0" class="markdown-content">
+        <div class="prose dark:prose-invert inline leading-relaxed break-words min-w-0">
+          ${config.summaryContent}
+        </div>
+      </div>
+    `
+    : '';
+
+  return `
+    <div class="flex flex-col gap-y-md">
+      <!-- User query -->
+      <div class="bg-base" style="opacity: 1; transform: none;">
+        <div class="relative z-10">
+          <div class="group relative flex items-end gap-0.5">
+            <div class="relative min-w-0 flex-1 flex justify-end">
+              <div class="flex items-start gap-2">
+                <div class="group/title relative inline-flex flex-col">
+                  <div class="group/query relative whitespace-pre-line">
+                    <div class="min-w-[48px] select-none p-3 bg-subtle rounded-2xl">
+                      <span class="min-w-0 font-sans text-base text-foreground font-normal select-text break-words">${escapeHtmlForPerplexity(config.query)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps completed + Report card -->
+      <div class="gap-y-sm flex flex-col">
+        <div class="flex flex-col gap-sm">
+          <button type="button" class="reset">13 steps completed</button>
+        </div>
+        <div class="flex flex-col gap-3 py-4">
+          <div class="border-borderMain bg-base overflow-hidden border border-subtlest ring-subtlest divide-subtlest bg-raised rounded-lg">
+            <div class="border-subtlest flex items-center justify-between border-b px-3 py-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <svg role="img" class="inline-flex fill-current shrink-0 text-super shrink-0" width="16" height="16"><use xlink:href="#pplx-icon-telescope"></use></svg>
+                <span class="text-textMain truncate text-sm font-medium">${escapeHtmlForPerplexity(config.reportTitle)}</span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0 ml-2 -mr-1">
+                <button>Download</button>
+                <button aria-label="Copy contents">Copy</button>
+              </div>
+            </div>
+            <div class="relative">
+              <div class="overflow-hidden px-4 py-3 prose dark:prose-invert max-w-none text-sm">
+                <div><div><div class="prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:break-word]">
+                  ${config.reportContent}
+                </div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary response -->
+      ${summaryBlock}
+    </div>
+  `;
+}
+
+/**
+ * Create a complete Perplexity Deep Research page with location set
+ */
+export function createPerplexityDeepResearchPage(
+  slug: string,
+  config: PerplexityDeepResearchConfig
+): void {
+  setPerplexityLocation(slug);
+  loadFixture(`
+    <div class="app-container">
+      ${createPerplexityDeepResearchDOM(config)}
+    </div>
+  `);
+}
+
+/**
+ * Create a multi-turn Perplexity page with a normal Q&A followed by a Deep Research turn
+ *
+ * Replicates the real-world scenario:
+ * 1. User query → normal assistant response (markdown-content-0)
+ * 2. User query → Deep Research report card → summary response (markdown-content-1)
+ */
+export function createPerplexityMultiTurnWithDeepResearch(
+  slug: string,
+  config: {
+    /** First turn: normal Q&A */
+    firstQuery: string;
+    firstResponse: string;
+    /** Second turn: Deep Research */
+    secondQuery: string;
+    reportTitle: string;
+    reportContent: string;
+    summaryContent: string;
+  }
+): void {
+  setPerplexityLocation(slug);
+  loadFixture(`
+    <div class="app-container">
+      <div class="flex flex-col gap-y-md">
+        <!-- Turn 1: Normal Q&A -->
+        <div class="bg-base" style="opacity: 1; transform: none;">
+          <div class="relative z-10">
+            <div class="group relative flex items-end gap-0.5">
+              <div class="relative min-w-0 flex-1 flex justify-end">
+                <div class="flex items-start gap-2">
+                  <div class="group/title relative inline-flex flex-col">
+                    <div class="group/query relative whitespace-pre-line">
+                      <div class="min-w-[48px] select-none p-3 bg-subtle rounded-2xl">
+                        <span class="min-w-0 font-sans text-base text-foreground font-normal select-text break-words">${escapeHtmlForPerplexity(config.firstQuery)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="markdown-content-0" class="markdown-content">
+          <div class="prose dark:prose-invert inline leading-relaxed break-words min-w-0">
+            ${config.firstResponse}
+          </div>
+        </div>
+
+        <!-- Turn 2: Deep Research -->
+        <div class="bg-base" style="opacity: 1; transform: none;">
+          <div class="relative z-10">
+            <div class="group relative flex items-end gap-0.5">
+              <div class="relative min-w-0 flex-1 flex justify-end">
+                <div class="flex items-start gap-2">
+                  <div class="group/title relative inline-flex flex-col">
+                    <div class="group/query relative whitespace-pre-line">
+                      <div class="min-w-[48px] select-none p-3 bg-subtle rounded-2xl">
+                        <span class="min-w-0 font-sans text-base text-foreground font-normal select-text break-words">${escapeHtmlForPerplexity(config.secondQuery)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gap-y-sm flex flex-col">
+          <div class="flex flex-col gap-sm">
+            <button type="button" class="reset">13 steps completed</button>
+          </div>
+          <div class="flex flex-col gap-3 py-4">
+            <div class="border-borderMain bg-base overflow-hidden border border-subtlest ring-subtlest divide-subtlest bg-raised rounded-lg">
+              <div class="border-subtlest flex items-center justify-between border-b px-3 py-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <svg role="img" class="inline-flex fill-current shrink-0 text-super shrink-0" width="16" height="16"><use xlink:href="#pplx-icon-telescope"></use></svg>
+                  <span class="text-textMain truncate text-sm font-medium">${escapeHtmlForPerplexity(config.reportTitle)}</span>
+                </div>
+              </div>
+              <div class="relative">
+                <div class="overflow-hidden px-4 py-3 prose dark:prose-invert max-w-none text-sm">
+                  <div><div><div class="prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:break-word]">
+                    ${config.reportContent}
+                  </div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="markdown-content-1" class="markdown-content">
+          <div class="prose dark:prose-invert inline leading-relaxed break-words min-w-0">
+            ${config.summaryContent}
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+/**
+ * Escape HTML entities for Perplexity DOM helpers
+ */
+function escapeHtmlForPerplexity(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
